@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimPull Middleware — Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0d;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .logo span { color: #e63946; }
+
+    .badge {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      display: inline-block;
+    }
+    .status-dot.ok { background: #2ecc71; }
+    .status-dot.error { background: #e74c3c; }
+
+    #status-text { font-size: 13px; color: #888; }
+
+    button {
+      background: #e63946;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #c1121f; }
+    button:disabled { background: #444; cursor: not-allowed; }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      padding: 20px 32px 0;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .tab {
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: #fff; border-color: #e63946; }
+    .tab:hover:not(.active) { color: #aaa; }
+
+    .count {
+      font-size: 11px;
+      background: #222;
+      border-radius: 10px;
+      padding: 2px 7px;
+      margin-left: 6px;
+      color: #888;
+    }
+
+    main { padding: 28px 32px; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { border-color: #333; transform: translateY(-2px); }
+
+    .card-img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #1a1a1a;
+      display: block;
+    }
+
+    .card-body { padding: 10px 12px 12px; }
+    .card-name { font-size: 13px; font-weight: 600; color: #e0e0e0; line-height: 1.3; }
+    .card-sub { font-size: 11px; color: #666; margin-top: 3px; }
+
+    .no-preview { color: #444; font-style: italic; }
+
+    .empty { text-align: center; color: #555; padding: 60px 0; font-size: 15px; }
+
+    .info-box {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #888;
+      line-height: 1.8;
+    }
+    .info-box strong { color: #ccc; }
+    .info-box code {
+      background: #1e1e1e;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="logo">SIM<span>PULL</span> Middleware</div>
+    <div class="badge">Demo Consumer</div>
+  </div>
+  <div class="controls">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Connecting...</span>
+    <button id="rescan-btn" onclick="rescan()">Rescan AC</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('cars')">
+    Cars <span class="count" id="car-count">0</span>
+  </div>
+  <div class="tab" onclick="showTab('tracks')">
+    Tracks <span class="count" id="track-count">0</span>
+  </div>
+  <div class="tab" onclick="showTab('api')">API</div>
+</div>
+
+<main>
+  <section class="section active" id="tab-cars">
+    <div class="grid" id="cars-grid"></div>
+  </section>
+
+  <section class="section" id="tab-tracks">
+    <div class="grid" id="tracks-grid"></div>
+  </section>
+
+  <section class="section" id="tab-api">
+    <div class="info-box">
+      <strong>SimPull Middleware API</strong> — This demo consumes the middleware's stable REST API.<br><br>
+      <code>GET /api/cars</code> — All installed cars with normalized names and preview URLs<br>
+      <code>GET /api/tracks</code> — All installed tracks/layouts with preview URLs<br>
+      <code>GET /api/car-preview/:carId</code> — Car preview image (never 404s)<br>
+      <code>GET /api/track-preview/:track</code> — Track preview image<br>
+      <code>GET /api/track-preview/:track/:layout</code> — Layout preview image<br>
+      <code>GET /api/status</code> — Service health + scan stats<br>
+      <code>POST /api/rescan</code> — Re-scan the AC directory<br>
+      <code>GET /api/config</code> — Current config (acPath, port)<br>
+      <code>PUT /api/config</code> — Update config<br><br>
+      This demo is a minimal consumer only. The API is designed to be consumed by kiosks,
+      overlays, launchers, and third-party sim platforms independently.
+    </div>
+    <div class="info-box" id="status-json" style="font-family:monospace;white-space:pre;font-size:12px"></div>
+  </section>
+</main>
+
+<script src="demo.js"></script>
+</body>
+</html>
